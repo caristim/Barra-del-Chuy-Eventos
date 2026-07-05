@@ -1,11 +1,11 @@
 // 🔑 Configuración de Firebase (usa tus credenciales reales aquí)
 const firebaseConfig = {
-  apiKey: "TU_API_KEY",
+  apiKey: "AIzaSyAbO_rEyrHMhAC68Qflr6ZXByVdYKSA2Ao",
   authDomain: "barra-chuy-eventos.firebaseapp.com",
   projectId: "barra-chuy-eventos",
   storageBucket: "barra-chuy-eventos.appspot.com",
-  messagingSenderId: "XXXXXXX",
-  appId: "TU_APP_ID"
+  messagingSenderId: "414247219366",
+  appId: "1:414247219366:web:4fb5d257effc6ed2db0467"
 };
 
 // Inicializar Firebase
