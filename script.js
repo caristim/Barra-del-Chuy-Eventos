@@ -16,6 +16,7 @@ const db = firebase.firestore();
 const barraChuyCoords = [-33.7556, -53.3889];
 let map, marker;
 
+// Mostrar formulario
 function showForm() {
   document.getElementById('event-form').style.display = 'block';
 
@@ -36,10 +37,12 @@ function showForm() {
   }
 }
 
+// Ocultar formulario
 function hideForm() {
   document.getElementById('event-form').style.display = 'none';
 }
 
+// Guardar evento en Firestore
 function saveEvent() {
   const title = document.getElementById('title').value;
   const category = document.getElementById('category').value;
@@ -64,22 +67,51 @@ function saveEvent() {
   });
 }
 
+// Mostrar lista de eventos
 function showEvents() {
   document.getElementById('event-list').style.display = 'block';
   loadEvents();
 }
 
+// Cargar eventos desde Firestore
 function loadEvents() {
   const list = document.getElementById('event-list');
   list.innerHTML = "";
 
-  db.collection("eventos").get().then((querySnapshot) => {
+  const hoy = new Date();
+
+  db.collection("eventos").orderBy("date").get().then((querySnapshot) => {
     querySnapshot.forEach((doc) => {
       const ev = doc.data();
-      list.innerHTML += `
-        <p><strong>${ev.date} ${ev.time}</strong> - ${ev.title} (${ev.category})<br>
-        ${ev.description}<br>
-        📍 ${ev.location}</p>`;
+      const fechaEvento = new Date(ev.date + "T" + ev.time);
+
+      let html = `
+        <p>
+          <strong>${ev.date} ${ev.time}</strong> - ${ev.title} (${ev.category})<br>
+          ${ev.description}<br>
+          📍 ${ev.location}
+      `;
+
+      // Mostrar botón de borrar solo si el evento ya pasó
+      if (fechaEvento < hoy) {
+        html += `<br><button onclick="deleteEvent('${doc.id}')">🗑️ Borrar evento</button>`;
+      }
+
+      html += `</p>`;
+      list.innerHTML += html;
     });
   });
 }
+
+// Función para borrar evento
+function deleteEvent(id) {
+  db.collection("eventos").doc(id).delete().then(() => {
+    alert("Evento borrado correctamente.");
+    loadEvents();
+  }).catch((error) => {
+    console.error("Error al borrar: ", error);
+  });
+}
+
+// Inicial carga
+loadEvents();
