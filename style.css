@@ -1,33 +1,110 @@
+/* Fondo general */
 body {
   font-family: Arial, sans-serif;
   text-align: center;
   background: url('playa-barra-chuy.jpg') no-repeat center center fixed;
   background-size: cover;
   color: white;
+  margin: 0;
+  padding: 0;
 }
+
+/* Overlay para mejorar legibilidad */
 .overlay {
   background: rgba(0,0,0,0.5);
-  padding: 20px;
+  padding: 30px;
 }
+
+/* Botones principales */
 button {
   margin: 10px;
-  padding: 15px;
-  font-size: 18px;
+  padding: 12px 20px;
+  font-size: 16px;
   border: none;
   border-radius: 8px;
-  background-color: #ff9800;
+  background: linear-gradient(135deg, #ff9800, #f57c00);
   color: white;
   cursor: pointer;
+  transition: transform 0.2s ease, background 0.3s ease;
 }
-#event-list {
-  background: rgba(255,255,255,0.8);
+
+button:hover {
+  transform: scale(1.05);
+  background: linear-gradient(135deg, #f57c00, #e65100);
+}
+
+/* Ventana modal */
+#event-form {
+  display: none;
+  position: fixed;
+  top: 5%; /* más arriba */
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
   color: black;
-  margin: 20px;
-  padding: 10px;
+  padding: 20px;
+  border-radius: 12px;
+  width: 420px;
+  max-height: 90%;
+  overflow-y: auto;
+  box-shadow: 0 0 25px rgba(0,0,0,0.6);
+  z-index: 1000;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Animación de entrada */
+@keyframes fadeIn {
+  from {opacity: 0; transform: translate(-50%, -10%);}
+  to {opacity: 1; transform: translate(-50%, 0);}
+}
+
+/* Campos del formulario */
+label {
+  display: block;
+  margin-top: 12px;
+  font-weight: bold;
+  color: #333;
+}
+
+input, select, textarea {
+  width: 100%;
+  padding: 8px;
+  margin-top: 5px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+}
+
+/* Mapa */
+#map {
+  height: 300px; /* más alto */
+  margin-top: 10px;
+  border: 2px solid #ddd;
   border-radius: 8px;
 }
-#map {
-  height: 300px;
-  width: 100%;
-  margin-top: 10px;
+
+/* Lista de eventos */
+#event-list {
+  background: rgba(255,255,255,0.9);
+  color: #333;
+  margin: 20px auto;
+  padding: 15px;
+  border-radius: 10px;
+  width: 80%;
+  text-align: left;
+}
+
+#event-list p {
+  border-bottom: 1px solid #ccc;
+  padding: 10px 0;
+}
+
+/* Botón borrar evento */
+#event-list button {
+  background: #e53935;
+  margin-top: 8px;
+}
+
+#event-list button:hover {
+  background: #b71c1c;
 }
