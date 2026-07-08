@@ -1,11 +1,12 @@
-// 🔑 Configuración Firebase (reemplaza con tus credenciales)
+// 🔑 Configuración Firebase (ya con tus credenciales)
 const firebaseConfig = {
-  apiKey: "TU_API_KEY",
-  authDomain: "TU_AUTH_DOMAIN",
-  projectId: "TU_PROJECT_ID",
-  storageBucket: "TU_STORAGE_BUCKET",
-  messagingSenderId: "TU_MESSAGING_SENDER_ID",
-  appId: "TU_APP_ID"
+  apiKey: "AIzaSyAbO_rEyrHMhAC68Qflr6ZXByVdYKSA2Ao",
+  authDomain: "barra-del-chuy-eventos.firebaseapp.com",
+  projectId: "barra-del-chuy-eventos",
+  storageBucket: "barra-del-chuy-eventos.firebasestorage.app",
+  messagingSenderId: "414247219366",
+  appId: "1:414247219366:web:4fb5d257effc6ed2db0467",
+  measurementId: "G-2L680N3SE9"
 };
 
 // Inicializar Firebase
