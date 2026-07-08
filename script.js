@@ -1,4 +1,4 @@
-// 🔑 Configuración Firebase (ya con tus credenciales)
+// Configuración Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyAbO_rEyrHMhAC68Qflr6ZXByVdYKSA2Ao",
   authDomain: "barra-del-chuy-eventos.firebaseapp.com",
@@ -9,21 +9,18 @@ const firebaseConfig = {
   measurementId: "G-2L680N3SE9"
 };
 
-// Inicializar Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// Coordenadas Barra del Chuy
-const barraChuyCoords = [-33.713, -53.459];
+// Coordenadas exactas Barra del Chuy
+const barraChuyCoords = [-33.7556, -53.3889];
 let map, marker;
 
-// Mostrar formulario
 function showForm() {
   document.getElementById('event-form').style.display = 'block';
 
-  // Inicializar mapa si no existe
   if (!map) {
-    map = L.map('map').setView(barraChuyCoords, 14);
+    map = L.map('map').setView(barraChuyCoords, 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors'
     }).addTo(map);
@@ -35,17 +32,14 @@ function showForm() {
       document.getElementById('location').value = `${coords.lat},${coords.lng}`;
     });
 
-    // Guardar coordenadas iniciales
     document.getElementById('location').value = `${barraChuyCoords[0]},${barraChuyCoords[1]}`;
   }
 }
 
-// Ocultar formulario
 function hideForm() {
   document.getElementById('event-form').style.display = 'none';
 }
 
-// Guardar evento en Firestore
 function saveEvent() {
   const title = document.getElementById('title').value;
   const category = document.getElementById('category').value;
@@ -70,7 +64,11 @@ function saveEvent() {
   });
 }
 
-// Cargar eventos desde Firestore
+function showEvents() {
+  document.getElementById('event-list').style.display = 'block';
+  loadEvents();
+}
+
 function loadEvents() {
   const list = document.getElementById('event-list');
   list.innerHTML = "";
@@ -78,12 +76,10 @@ function loadEvents() {
   db.collection("eventos").get().then((querySnapshot) => {
     querySnapshot.forEach((doc) => {
       const ev = doc.data();
-      const li = document.createElement("li");
-      li.textContent = `${ev.date} ${ev.time} - ${ev.title} (${ev.category})`;
-      list.appendChild(li);
+      list.innerHTML += `
+        <p><strong>${ev.date} ${ev.time}</strong> - ${ev.title} (${ev.category})<br>
+        ${ev.description}<br>
+        📍 ${ev.location}</p>`;
     });
   });
 }
-
-// Inicial carga
-loadEvents();
