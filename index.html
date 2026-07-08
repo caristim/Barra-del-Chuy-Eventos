@@ -2,20 +2,80 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Eventos Barra del Chuy</title>
-  <link rel="stylesheet" href="style.css">
+  <title>Balneario Barra del Chuy – Eventos Locales</title>
   <link rel="manifest" href="manifest.json">
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: url('playa-barra-chuy.jpg') no-repeat center center fixed;
+      background-size: cover;
+      color: white;
+    }
+    .overlay {
+      background: rgba(0,0,0,0.5);
+      padding: 20px;
+    }
+    button {
+      margin: 10px;
+      padding: 15px;
+      font-size: 18px;
+      border: none;
+      border-radius: 8px;
+      background-color: #ff9800;
+      color: white;
+      cursor: pointer;
+    }
+    /* Ventana modal */
+    #event-form {
+      display: none;
+      position: fixed;
+      top: 10%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      color: black;
+      padding: 20px;
+      border-radius: 10px;
+      width: 400px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+      z-index: 1000;
+    }
+    #map {
+      height: 250px;
+      margin-top: 10px;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+  </style>
 </head>
 <body>
-  <h1>Eventos en Barra del Chuy</h1>
-  <button onclick="showForm()">➕ Agregar evento</button>
+  <div class="overlay">
+    <h1>Balneario Barra del Chuy</h1>
+    <h2>Eventos Locales</h2>
+    <p>Tu comunidad, tus actividades, tu lugar</p>
+    <button onclick="showEvents()">📅 Ver eventos</button>
+    <button onclick="showForm()">➕ Agregar evento</button>
+  </div>
 
-  <div id="event-form" style="display:none;">
-    <label>Título del evento</label>
+  <!-- Ventana modal para agregar evento -->
+  <div id="event-form">
+    <h3>Agregar nuevo evento</h3>
+    <label>Título</label>
     <input type="text" id="title" placeholder="Ej: Festival de música">
 
     <label>Categoría</label>
@@ -35,16 +95,15 @@
     <label>Descripción</label>
     <textarea id="description" placeholder="Breve descripción"></textarea>
 
-    <label>Ubicación en mapa</label>
-    <div id="map" style="height:300px;"></div>
+    <label>Ubicación</label>
+    <div id="map"></div>
     <input type="hidden" id="location">
 
-    <button onclick="saveEvent()">Guardar evento</button>
+    <button onclick="saveEvent()">Guardar</button>
     <button onclick="hideForm()">Cancelar</button>
   </div>
 
-  <h2>Lista de eventos</h2>
-  <ul id="event-list"></ul>
+  <div id="event-list" style="display:none;"></div>
 
   <script src="script.js"></script>
 </body>
