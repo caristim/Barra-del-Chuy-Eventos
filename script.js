@@ -9,6 +9,7 @@ const firebaseConfig = {
   measurementId: "G-2L680N3SE9"
 };
 
+// Inicializar Firebase (versión compat)
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
@@ -69,12 +70,21 @@ function showForm() {
   listDiv.style.display = 'none';
   formDiv.style.display = 'block';
 
-  // El mapa ya está creado, solo hay que redimensionarlo
+  // El mapa ya debe estar creado; redimensionar si existe
   if (map) {
-    // Pequeño retraso para que el contenedor se renderice como bloque
     setTimeout(() => {
       map.invalidateSize();
-    }, 200);
+      // Sincronizar marcador con el campo de ubicación
+      const locInput = document.getElementById('location');
+      const coords = locInput.value.split(',').map(Number);
+      if (coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1])) {
+        marker.setLatLng([coords[0], coords[1]]);
+        map.setView([coords[0], coords[1]], 13);
+      }
+    }, 300);
+  } else {
+    // Por si acaso, crear el mapa ahora
+    initMap();
   }
 }
 
@@ -87,10 +97,16 @@ function hideForm() {
 // ==================== MAPA (Leaflet) ====================
 function initMap() {
   const mapContainer = document.getElementById('map');
-  if (!mapContainer) return;
+  if (!mapContainer) {
+    console.error('Contenedor del mapa no encontrado');
+    return;
+  }
 
-  // Si ya existe un mapa, no lo creamos de nuevo
-  if (map) return;
+  // Si ya existe, no volver a crear
+  if (map) {
+    map.invalidateSize();
+    return;
+  }
 
   map = L.map('map').setView([DEFAULT_LAT, DEFAULT_LNG], 13);
 
@@ -100,7 +116,7 @@ function initMap() {
 
   marker = L.marker([DEFAULT_LAT, DEFAULT_LNG], { draggable: true }).addTo(map);
 
-  // Sincronizar con el campo de texto
+  // Sincronizar marcador con campo de texto
   marker.on('dragend', function () {
     const pos = marker.getLatLng();
     document.getElementById('location').value = `${pos.lat}, ${pos.lng}`;
@@ -186,8 +202,8 @@ function saveEvent() {
 }
 
 // ==================== INICIO ====================
-window.addEventListener('DOMContentLoaded', function () {
-  // Inicializar el mapa al cargar la página (aunque esté oculto)
+document.addEventListener('DOMContentLoaded', function () {
+  // Inicializar el mapa (aunque esté oculto)
   initMap();
   // Mostrar la lista de eventos
   showEvents();
