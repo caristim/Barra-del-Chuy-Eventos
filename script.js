@@ -13,10 +13,10 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 // ==================== VARIABLES GLOBALES ====================
-let map = null;          // mapa del formulario
+let map = null;
 let marker = null;
-let mapList = null;      // mapa de la lista de eventos
-let markerGroup = null;  // grupo de marcadores en el mapa de lista
+let mapList = null;
+let markerGroup = null;
 const DEFAULT_LAT = -33.749;
 const DEFAULT_LNG = -53.347;
 
@@ -28,13 +28,11 @@ function showEvents() {
   listDiv.style.display = 'block';
   formDiv.style.display = 'none';
 
-  // Mostrar mensaje de carga
   document.getElementById('event-items').innerHTML = '<p>Cargando eventos...</p>';
-  // Ocultar mapa mientras carga (se mostrará al terminar)
   const mapListContainer = document.getElementById('map-list');
   mapListContainer.style.display = 'none';
 
-  console.log('📡 Intentando leer eventos de Firestore...');
+  console.log('📡 Leyendo eventos...');
 
   db.collection('eventos')
     .orderBy('fecha', 'desc')
@@ -49,7 +47,6 @@ function showEvents() {
         return;
       }
 
-      // ---------- Construir lista HTML ----------
       let html = '';
       const eventosConCoords = [];
       querySnapshot.forEach((doc) => {
@@ -70,8 +67,6 @@ function showEvents() {
             ${desc ? `<div class="event-desc">${desc}</div>` : ''}
           </div>
         `;
-
-        // Guardar coordenadas para el mapa si existen
         if (data.lat && data.lng) {
           eventosConCoords.push({
             lat: data.lat,
@@ -83,7 +78,6 @@ function showEvents() {
       });
       itemsContainer.innerHTML = html;
 
-      // ---------- Mostrar mapa con marcadores ----------
       if (eventosConCoords.length > 0) {
         mapListContainer.style.display = 'block';
         initMapList(eventosConCoords);
@@ -93,59 +87,43 @@ function showEvents() {
     })
     .catch((error) => {
       console.error('❌ Error al obtener eventos:', error);
-      document.getElementById('event-items').innerHTML = `<p>❌ Error al cargar eventos: ${error.message}</p>`;
+      document.getElementById('event-items').innerHTML = `<p>❌ Error: ${error.message}</p>`;
       document.getElementById('map-list').style.display = 'none';
     });
 }
 
-// Inicializar o actualizar el mapa de la lista
 function initMapList(eventos) {
   const container = document.getElementById('map-list');
   if (!container) return;
 
-  // Si el mapa ya existe, limpiar marcadores anteriores
   if (mapList) {
-    if (markerGroup) {
-      mapList.removeLayer(markerGroup);
-    }
+    if (markerGroup) mapList.removeLayer(markerGroup);
   } else {
-    // Crear mapa por primera vez
     mapList = L.map('map-list').setView([DEFAULT_LAT, DEFAULT_LNG], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
     }).addTo(mapList);
   }
 
-  // Crear grupo de marcadores
   markerGroup = L.layerGroup().addTo(mapList);
-
-  // Añadir marcadores
   const bounds = [];
   eventos.forEach(ev => {
     const latlng = [ev.lat, ev.lng];
     bounds.push(latlng);
     const popupText = `<strong>${ev.titulo}</strong>${ev.desc ? '<br>' + ev.desc : ''}`;
-    const m = L.marker(latlng).bindPopup(popupText);
-    markerGroup.addLayer(m);
+    L.marker(latlng).bindPopup(popupText).addTo(markerGroup);
   });
 
-  // Ajustar vista para que todos los marcadores sean visibles
   if (bounds.length > 0) {
     mapList.fitBounds(bounds, { padding: [30, 30] });
   }
 
-  // Forzar redimensionado (por si el contenedor cambió de tamaño)
-  setTimeout(() => {
-    if (mapList) mapList.invalidateSize();
-  }, 300);
+  setTimeout(() => { if (mapList) mapList.invalidateSize(); }, 300);
 }
 
 function showForm() {
-  const listDiv = document.getElementById('event-list');
-  const formDiv = document.getElementById('event-form');
-  listDiv.style.display = 'none';
-  formDiv.style.display = 'block';
-
+  document.getElementById('event-list').style.display = 'none';
+  document.getElementById('event-form').style.display = 'block';
   if (map) {
     setTimeout(() => {
       map.invalidateSize();
@@ -164,57 +142,42 @@ function showForm() {
 function hideForm() {
   document.getElementById('event-form').style.display = 'none';
   document.getElementById('event-list').style.display = 'block';
-  showEvents(); // recargar lista y mapa
+  showEvents();
 }
 
-// ==================== MAPA DEL FORMULARIO ====================
 function initMapForm() {
   const mapContainer = document.getElementById('map');
-  if (!mapContainer) {
-    console.error('Contenedor del mapa del formulario no encontrado');
-    return;
-  }
-  if (map) {
-    map.invalidateSize();
-    return;
-  }
+  if (!mapContainer) return;
+  if (map) { map.invalidateSize(); return; }
 
   map = L.map('map').setView([DEFAULT_LAT, DEFAULT_LNG], 13);
-
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    attribution: '&copy; OpenStreetMap'
   }).addTo(map);
 
   marker = L.marker([DEFAULT_LAT, DEFAULT_LNG], { draggable: true }).addTo(map);
-
   marker.on('dragend', function () {
     const pos = marker.getLatLng();
     document.getElementById('location').value = `${pos.lat}, ${pos.lng}`;
   });
-
   map.on('click', function (e) {
     const latlng = e.latlng;
     marker.setLatLng(latlng);
     document.getElementById('location').value = `${latlng.lat}, ${latlng.lng}`;
   });
 
-  const locationInput = document.getElementById('location');
-  locationInput.addEventListener('change', function () {
+  const locInput = document.getElementById('location');
+  locInput.addEventListener('change', function () {
     const coords = this.value.trim().split(',').map(Number);
     if (coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1])) {
       marker.setLatLng([coords[0], coords[1]]);
       map.setView([coords[0], coords[1]], 13);
     }
   });
-
-  locationInput.value = `${DEFAULT_LAT}, ${DEFAULT_LNG}`;
-
-  setTimeout(() => {
-    if (map) map.invalidateSize();
-  }, 500);
+  locInput.value = `${DEFAULT_LAT}, ${DEFAULT_LNG}`;
+  setTimeout(() => { if (map) map.invalidateSize(); }, 500);
 }
 
-// ==================== GUARDAR EVENTO ====================
 function saveEvent() {
   const titulo = document.getElementById('title').value.trim();
   const categoria = document.getElementById('category').value;
@@ -235,31 +198,24 @@ function saveEvent() {
   }
 
   const fechaHora = new Date(`${fechaInput}T${horaInput}:00`);
-  if (isNaN(fechaHora.getTime())) {
-    alert('⚠️ Fecha u hora inválida.');
-    return;
-  }
+  if (isNaN(fechaHora.getTime())) { alert('⚠️ Fecha u hora inválida.'); return; }
 
   const data = {
-    titulo: titulo,
-    categoria: categoria,
+    titulo, categoria,
     fecha: fechaHora,
     fechaStr: fechaInput,
     hora: horaInput,
-    descripcion: descripcion,
+    descripcion,
     ubicacion: `${coords[0]}, ${coords[1]}`,
     lat: coords[0],
     lng: coords[1],
     timestamp: firebase.firestore.FieldValue.serverTimestamp()
   };
 
-  console.log('📤 Intentando guardar evento:', data);
-
-  db.collection('eventos')
-    .add(data)
-    .then((docRef) => {
-      console.log('✅ Evento guardado con ID:', docRef.id);
-      alert('✅ Evento guardado con éxito.');
+  console.log('📤 Guardando evento:', data);
+  db.collection('eventos').add(data)
+    .then(() => {
+      alert('✅ Evento guardado.');
       document.getElementById('title').value = '';
       document.getElementById('description').value = '';
       document.getElementById('location').value = `${DEFAULT_LAT}, ${DEFAULT_LNG}`;
@@ -270,12 +226,12 @@ function saveEvent() {
       hideForm();
     })
     .catch((error) => {
-      console.error('❌ Error al guardar:', error);
-      alert(`❌ Error al guardar: ${error.message}`);
+      console.error('❌ Error:', error);
+      alert(`❌ Error: ${error.message}`);
     });
 }
 
-// ==================== INICIO ====================
+// Inicio
 document.addEventListener('DOMContentLoaded', function () {
   initMapForm();
   showEvents();
