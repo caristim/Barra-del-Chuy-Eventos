@@ -50,23 +50,32 @@ button:hover {
   text-align: left;
 }
 
-#event-list .event-item {
+#event-items .event-item {
   border-bottom: 1px solid #ddd;
   padding: 12px 0;
 }
-#event-list .event-item:last-child {
+#event-items .event-item:last-child {
   border-bottom: none;
 }
-#event-list .event-title {
+#event-items .event-title {
   font-weight: bold;
   font-size: 1.2em;
 }
-#event-list .event-meta {
+#event-items .event-meta {
   color: #555;
   font-size: 0.9em;
 }
-#event-list .event-desc {
+#event-items .event-desc {
   margin-top: 6px;
+}
+
+#map-list {
+  height: 350px;
+  width: 100%;
+  margin-top: 20px;
+  border-radius: 8px;
+  border: 2px solid #ff9800;
+  background: #e0e0e0;
 }
 
 #event-form {
@@ -118,5 +127,8 @@ small {
   #event-form {
     margin: 10px;
     padding: 15px;
+  }
+  #map-list {
+    height: 250px;
   }
 }
