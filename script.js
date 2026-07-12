@@ -9,7 +9,6 @@ const firebaseConfig = {
   measurementId: "G-2L680N3SE9"
 };
 
-// Inicializar Firebase (compat)
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
@@ -18,13 +17,11 @@ let map = null;
 let marker = null;
 let mapInitialized = false;
 
-// Coordenadas por defecto: Barra del Chuy (aproximado)
 const DEFAULT_LAT = -33.749;
 const DEFAULT_LNG = -53.347;
 
 // ==================== FUNCIONES DE INTERFAZ ====================
 
-// Mostrar la lista de eventos
 function showEvents() {
   const listDiv = document.getElementById('event-list');
   const formDiv = document.getElementById('event-form');
@@ -33,14 +30,13 @@ function showEvents() {
   listDiv.innerHTML = '<p>Cargando eventos...</p>';
 
   db.collection('eventos')
-    .orderBy('fecha', 'desc') // ordenar por fecha (más reciente primero)
+    .orderBy('fecha', 'desc')
     .get()
     .then((querySnapshot) => {
       if (querySnapshot.empty) {
         listDiv.innerHTML = '<p>No hay eventos aún. ¡Sé el primero en agregar uno!</p>';
         return;
       }
-
       let html = '';
       querySnapshot.forEach((doc) => {
         const data = doc.data();
@@ -49,7 +45,6 @@ function showEvents() {
         const categoria = data.categoria || 'General';
         const desc = data.descripcion || '';
         const ubicacion = data.ubicacion || 'No especificada';
-
         html += `
           <div class="event-item">
             <div class="event-title">${titulo}</div>
@@ -70,37 +65,54 @@ function showEvents() {
     });
 }
 
-// Mostrar el formulario y ocultar la lista
 function showForm() {
   const listDiv = document.getElementById('event-list');
   const formDiv = document.getElementById('event-form');
   listDiv.style.display = 'none';
   formDiv.style.display = 'block';
 
-  // Inicializar el mapa si no lo está
+  // Si el mapa no está inicializado, lo creamos; si ya lo está, lo redimensionamos
   if (!mapInitialized) {
-    initMap();
+    // Esperamos un poco para que el contenedor sea visible y luego inicializamos
+    setTimeout(() => {
+      initMap();
+    }, 100);
+  } else {
+    // El mapa ya existe, solo hay que redimensionarlo porque el contenedor cambió de tamaño
+    setTimeout(() => {
+      if (map) {
+        map.invalidateSize();
+        // Asegurar que el marcador esté en la posición actual
+        const locInput = document.getElementById('location');
+        const coords = locInput.value.split(',').map(Number);
+        if (coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1])) {
+          marker.setLatLng([coords[0], coords[1]]);
+        }
+      }
+    }, 200);
   }
 }
 
-// Ocultar formulario
 function hideForm() {
   document.getElementById('event-form').style.display = 'none';
   document.getElementById('event-list').style.display = 'block';
-  // Volver a mostrar la lista
-  showEvents();
+  showEvents(); // recargar lista
 }
 
 // ==================== MAPA (Leaflet) ====================
 function initMap() {
-  // El contenedor del mapa debe estar visible para que Leaflet lo renderice bien
   const mapContainer = document.getElementById('map');
   if (!mapContainer) return;
+
+  // Si ya existe un mapa, no lo creamos de nuevo
+  if (map) {
+    map.invalidateSize();
+    return;
+  }
 
   // Crear el mapa
   map = L.map('map').setView([DEFAULT_LAT, DEFAULT_LNG], 13);
 
-  // Capa de OpenStreetMap
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
   }).addTo(map);
@@ -108,42 +120,41 @@ function initMap() {
   // Marcador arrastrable
   marker = L.marker([DEFAULT_LAT, DEFAULT_LNG], { draggable: true }).addTo(map);
 
-  // Actualizar campo de ubicación al arrastrar
+  // Sincronizar el campo de texto con el marcador
   marker.on('dragend', function () {
     const pos = marker.getLatLng();
     document.getElementById('location').value = `${pos.lat}, ${pos.lng}`;
   });
 
-  // Al hacer clic en el mapa, mover el marcador
   map.on('click', function (e) {
     const latlng = e.latlng;
     marker.setLatLng(latlng);
     document.getElementById('location').value = `${latlng.lat}, ${latlng.lng}`;
   });
 
-  // Si el usuario escribe manualmente en el campo, actualizar el marcador
+  // Si el usuario escribe en el campo, mover el marcador
   const locationInput = document.getElementById('location');
   locationInput.addEventListener('change', function () {
     const coords = this.value.trim().split(',').map(Number);
     if (coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1])) {
-      const lat = coords[0];
-      const lng = coords[1];
-      marker.setLatLng([lat, lng]);
-      map.setView([lat, lng], 13);
+      marker.setLatLng([coords[0], coords[1]]);
+      map.setView([coords[0], coords[1]], 13);
     }
   });
 
+  // Establecer valor inicial en el campo
+  locationInput.value = `${DEFAULT_LAT}, ${DEFAULT_LNG}`;
+
   mapInitialized = true;
 
-  // Ajustar el tamaño del mapa cuando se muestra (después de un pequeño retraso)
+  // Forzar redimensionamiento después de un breve retraso
   setTimeout(() => {
-    map.invalidateSize();
-  }, 300);
+    if (map) map.invalidateSize();
+  }, 400);
 }
 
 // ==================== GUARDAR EVENTO ====================
 function saveEvent() {
-  // Obtener valores
   const titulo = document.getElementById('title').value.trim();
   const categoria = document.getElementById('category').value;
   const fechaInput = document.getElementById('date').value;
@@ -151,35 +162,19 @@ function saveEvent() {
   const descripcion = document.getElementById('description').value.trim();
   const ubicacionStr = document.getElementById('location').value.trim();
 
-  // Validaciones
-  if (!titulo) {
-    alert('Por favor, escribe un título para el evento.');
-    return;
-  }
-  if (!fechaInput) {
-    alert('Selecciona una fecha.');
-    return;
-  }
-  if (!horaInput) {
-    alert('Selecciona una hora.');
-    return;
-  }
-  if (!ubicacionStr) {
-    alert('Indica una ubicación (lat, lng) o selecciona en el mapa.');
-    return;
-  }
+  if (!titulo) { alert('Por favor, escribe un título para el evento.'); return; }
+  if (!fechaInput) { alert('Selecciona una fecha.'); return; }
+  if (!horaInput) { alert('Selecciona una hora.'); return; }
+  if (!ubicacionStr) { alert('Indica una ubicación (lat, lng) o selecciona en el mapa.'); return; }
 
-  // Parsear ubicación
   const coords = ubicacionStr.split(',').map(s => parseFloat(s.trim()));
   if (coords.length !== 2 || isNaN(coords[0]) || isNaN(coords[1])) {
     alert('La ubicación debe tener el formato: latitud, longitud (ej: -33.749, -53.347)');
     return;
   }
 
-  // Combinar fecha y hora en un objeto Date (para ordenar)
   const fechaHora = new Date(`${fechaInput}T${horaInput}:00`);
 
-  // Preparar datos para Firestore
   const data = {
     titulo: titulo,
     categoria: categoria,
@@ -193,7 +188,6 @@ function saveEvent() {
     timestamp: firebase.firestore.FieldValue.serverTimestamp()
   };
 
-  // Guardar en Firestore
   db.collection('eventos')
     .add(data)
     .then(() => {
@@ -202,22 +196,19 @@ function saveEvent() {
       document.getElementById('title').value = '';
       document.getElementById('description').value = '';
       document.getElementById('location').value = `${DEFAULT_LAT}, ${DEFAULT_LNG}`;
-      // Resetear marcador a la posición por defecto
       if (marker) {
         marker.setLatLng([DEFAULT_LAT, DEFAULT_LNG]);
         map.setView([DEFAULT_LAT, DEFAULT_LNG], 13);
       }
-      // Ocultar formulario y mostrar lista actualizada
       hideForm();
     })
     .catch((error) => {
       console.error('Error al guardar:', error);
-      alert('❌ Error al guardar el evento. Revisa la consola para más detalles.');
+      alert('❌ Error al guardar el evento. Revisa la consola.');
     });
 }
 
 // ==================== INICIO ====================
-// Al cargar la página, mostrar los eventos automáticamente
 window.addEventListener('DOMContentLoaded', function () {
   showEvents();
 });
