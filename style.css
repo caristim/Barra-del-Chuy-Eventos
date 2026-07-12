@@ -1,3 +1,4 @@
+/* Reset y estilos base */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -7,16 +8,19 @@
 body {
   font-family: Arial, sans-serif;
   text-align: center;
-  background: url('playa-barra-chuy.jpg') no-repeat center center fixed;
-  background-size: cover;
+  background-color: #1a1a2e; /* color sólido en lugar de imagen */
   color: white;
   min-height: 100vh;
+  margin: 0;
+  padding: 0;
 }
 
+/* Capa de fondo semitransparente */
 .overlay {
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.7);
   padding: 20px;
   margin-bottom: 20px;
+  border-radius: 0 0 12px 12px;
 }
 
 h1, h2, p {
@@ -39,15 +43,17 @@ button:hover {
   transform: scale(1.02);
 }
 
+/* Contenedor de la lista de eventos */
 #event-list {
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.95);
   color: #222;
-  max-width: 800px;
+  max-width: 900px;
   margin: 20px auto;
-  padding: 15px;
+  padding: 20px;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
   text-align: left;
+  display: block; /* siempre visible */
 }
 
 #event-items .event-item {
@@ -69,6 +75,7 @@ button:hover {
   margin-top: 6px;
 }
 
+/* Mapa dentro de la lista */
 #map-list {
   height: 350px;
   width: 100%;
@@ -76,8 +83,10 @@ button:hover {
   border-radius: 8px;
   border: 2px solid #ff9800;
   background: #e0e0e0;
+  display: none; /* se muestra solo si hay eventos con coordenadas */
 }
 
+/* Formulario */
 #event-form {
   background: rgba(255, 255, 255, 0.95);
   color: #222;
@@ -87,6 +96,7 @@ button:hover {
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
   text-align: left;
+  display: none; /* oculto por defecto */
 }
 #event-form h3 {
   margin-top: 0;
@@ -118,6 +128,7 @@ small {
   margin: 4px 0 12px 0;
 }
 
+/* Responsive */
 @media (max-width: 600px) {
   button {
     width: 90%;
