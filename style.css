@@ -1,123 +1,123 @@
-/* Fondo general */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
 body {
   font-family: Arial, sans-serif;
   text-align: center;
   background: url('playa-barra-chuy.jpg') no-repeat center center fixed;
   background-size: cover;
   color: white;
-  margin: 0;
-  padding: 0;
+  min-height: 100vh;
 }
 
-/* Overlay para mejorar legibilidad */
 .overlay {
-  background: rgba(0,0,0,0.5);
-  padding: 30px;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 20px;
+  margin-bottom: 20px;
 }
 
-/* Botones principales */
+h1, h2, p {
+  margin: 5px 0;
+}
+
 button {
-  margin: 10px;
-  padding: 12px 20px;
-  font-size: 16px;
+  margin: 10px 5px;
+  padding: 12px 24px;
+  font-size: 18px;
   border: none;
   border-radius: 8px;
-  background: linear-gradient(135deg, #ff9800, #f57c00);
+  background-color: #ff9800;
   color: white;
   cursor: pointer;
-  transition: transform 0.2s ease, background 0.3s ease;
+  transition: 0.2s;
 }
-
 button:hover {
-  transform: scale(1.05);
-  background: linear-gradient(135deg, #f57c00, #e65100);
+  background-color: #e68900;
+  transform: scale(1.02);
 }
 
-/* Ventana modal */
-#event-form {
-  display: none;
-  position: fixed;
-  top: 2%;              /* más arriba */
-  left: 50%;
-  transform: translateX(-50%);
-  background: white;
-  color: black;
-  padding: 20px;
-  border-radius: 12px;
-  width: 440px;
-  max-height: 95%;
-  overflow-y: auto;
-  box-shadow: 0 0 25px rgba(0,0,0,0.6);
-  z-index: 1000;
-  animation: fadeIn 0.3s ease-in-out;
-}
-
-/* Animación de entrada */
-@keyframes fadeIn {
-  from {opacity: 0; transform: translate(-50%, -10%);}
-  to {opacity: 1; transform: translate(-50%, 0);}
-}
-
-/* Campos del formulario */
-label {
-  display: block;
-  margin-top: 12px;
-  font-weight: bold;
-  color: #333;
-}
-
-input, select, textarea {
-  width: 100%;
-  padding: 8px;
-  margin-top: 5px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  font-size: 14px;
-}
-
-/* Campo de subida de banner */
-#banner {
-  margin-top: 8px;
-}
-
-/* Mapa */
-#map {
-  height: 320px;        /* más alto */
-  margin-top: 10px;
-  border: 2px solid #ddd;
-  border-radius: 8px;
-}
-
-/* Lista de eventos */
 #event-list {
-  background: rgba(255,255,255,0.9);
-  color: #333;
+  background: rgba(255, 255, 255, 0.9);
+  color: #222;
+  max-width: 800px;
   margin: 20px auto;
   padding: 15px;
-  border-radius: 10px;
-  width: 80%;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
   text-align: left;
 }
 
-#event-list p {
-  border-bottom: 1px solid #ccc;
-  padding: 10px 0;
+#event-list .event-item {
+  border-bottom: 1px solid #ddd;
+  padding: 12px 0;
+}
+#event-list .event-item:last-child {
+  border-bottom: none;
+}
+#event-list .event-title {
+  font-weight: bold;
+  font-size: 1.2em;
+}
+#event-list .event-meta {
+  color: #555;
+  font-size: 0.9em;
+}
+#event-list .event-desc {
+  margin-top: 6px;
 }
 
-/* Banner dentro de la lista */
-#event-list img {
-  max-width: 100%;
-  border-radius: 10px;
-  margin-top: 10px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.3);
+#event-form {
+  background: rgba(255, 255, 255, 0.95);
+  color: #222;
+  max-width: 600px;
+  margin: 20px auto;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  text-align: left;
 }
-
-/* Botón borrar evento */
-#event-list button {
-  background: #e53935;
+#event-form h3 {
+  margin-top: 0;
+  text-align: center;
+}
+#event-form input, #event-form select, #event-form textarea {
+  width: 100%;
+  padding: 10px;
+  margin: 6px 0 12px 0;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 1rem;
+}
+#event-form textarea {
+  resize: vertical;
+}
+.location-group label {
+  font-weight: bold;
+  display: block;
   margin-top: 8px;
 }
+#map {
+  border-radius: 8px;
+  border: 2px solid #ff9800;
+}
+small {
+  display: block;
+  color: #666;
+  margin: 4px 0 12px 0;
+}
 
-#event-list button:hover {
-  background: #b71c1c;
+/* Responsive */
+@media (max-width: 600px) {
+  button {
+    width: 90%;
+    display: block;
+    margin: 8px auto;
+  }
+  #event-form {
+    margin: 10px;
+    padding: 15px;
+  }
 }
