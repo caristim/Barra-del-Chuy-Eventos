@@ -15,8 +15,6 @@ const db = firebase.firestore();
 // ==================== VARIABLES GLOBALES ====================
 let map = null;
 let marker = null;
-let mapInitialized = false;
-
 const DEFAULT_LAT = -33.749;
 const DEFAULT_LNG = -53.347;
 
@@ -71,24 +69,11 @@ function showForm() {
   listDiv.style.display = 'none';
   formDiv.style.display = 'block';
 
-  // Si el mapa no está inicializado, lo creamos; si ya lo está, lo redimensionamos
-  if (!mapInitialized) {
-    // Esperamos un poco para que el contenedor sea visible y luego inicializamos
+  // El mapa ya está creado, solo hay que redimensionarlo
+  if (map) {
+    // Pequeño retraso para que el contenedor se renderice como bloque
     setTimeout(() => {
-      initMap();
-    }, 100);
-  } else {
-    // El mapa ya existe, solo hay que redimensionarlo porque el contenedor cambió de tamaño
-    setTimeout(() => {
-      if (map) {
-        map.invalidateSize();
-        // Asegurar que el marcador esté en la posición actual
-        const locInput = document.getElementById('location');
-        const coords = locInput.value.split(',').map(Number);
-        if (coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1])) {
-          marker.setLatLng([coords[0], coords[1]]);
-        }
-      }
+      map.invalidateSize();
     }, 200);
   }
 }
@@ -96,7 +81,7 @@ function showForm() {
 function hideForm() {
   document.getElementById('event-form').style.display = 'none';
   document.getElementById('event-list').style.display = 'block';
-  showEvents(); // recargar lista
+  showEvents();
 }
 
 // ==================== MAPA (Leaflet) ====================
@@ -105,22 +90,17 @@ function initMap() {
   if (!mapContainer) return;
 
   // Si ya existe un mapa, no lo creamos de nuevo
-  if (map) {
-    map.invalidateSize();
-    return;
-  }
+  if (map) return;
 
-  // Crear el mapa
   map = L.map('map').setView([DEFAULT_LAT, DEFAULT_LNG], 13);
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
   }).addTo(map);
 
-  // Marcador arrastrable
   marker = L.marker([DEFAULT_LAT, DEFAULT_LNG], { draggable: true }).addTo(map);
 
-  // Sincronizar el campo de texto con el marcador
+  // Sincronizar con el campo de texto
   marker.on('dragend', function () {
     const pos = marker.getLatLng();
     document.getElementById('location').value = `${pos.lat}, ${pos.lng}`;
@@ -132,7 +112,6 @@ function initMap() {
     document.getElementById('location').value = `${latlng.lat}, ${latlng.lng}`;
   });
 
-  // Si el usuario escribe en el campo, mover el marcador
   const locationInput = document.getElementById('location');
   locationInput.addEventListener('change', function () {
     const coords = this.value.trim().split(',').map(Number);
@@ -142,15 +121,13 @@ function initMap() {
     }
   });
 
-  // Establecer valor inicial en el campo
+  // Valor inicial
   locationInput.value = `${DEFAULT_LAT}, ${DEFAULT_LNG}`;
 
-  mapInitialized = true;
-
-  // Forzar redimensionamiento después de un breve retraso
+  // Forzar redimensionado después de un tiempo (por si el mapa está oculto)
   setTimeout(() => {
     if (map) map.invalidateSize();
-  }, 400);
+  }, 500);
 }
 
 // ==================== GUARDAR EVENTO ====================
@@ -210,5 +187,8 @@ function saveEvent() {
 
 // ==================== INICIO ====================
 window.addEventListener('DOMContentLoaded', function () {
+  // Inicializar el mapa al cargar la página (aunque esté oculto)
+  initMap();
+  // Mostrar la lista de eventos
   showEvents();
 });
