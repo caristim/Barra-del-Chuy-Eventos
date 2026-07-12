@@ -70,11 +70,9 @@ function showForm() {
   listDiv.style.display = 'none';
   formDiv.style.display = 'block';
 
-  // El mapa ya debe estar creado; redimensionar si existe
   if (map) {
     setTimeout(() => {
       map.invalidateSize();
-      // Sincronizar marcador con el campo de ubicación
       const locInput = document.getElementById('location');
       const coords = locInput.value.split(',').map(Number);
       if (coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1])) {
@@ -83,7 +81,6 @@ function showForm() {
       }
     }, 300);
   } else {
-    // Por si acaso, crear el mapa ahora
     initMap();
   }
 }
@@ -102,7 +99,6 @@ function initMap() {
     return;
   }
 
-  // Si ya existe, no volver a crear
   if (map) {
     map.invalidateSize();
     return;
@@ -116,7 +112,6 @@ function initMap() {
 
   marker = L.marker([DEFAULT_LAT, DEFAULT_LNG], { draggable: true }).addTo(map);
 
-  // Sincronizar marcador con campo de texto
   marker.on('dragend', function () {
     const pos = marker.getLatLng();
     document.getElementById('location').value = `${pos.lat}, ${pos.lng}`;
@@ -137,17 +132,18 @@ function initMap() {
     }
   });
 
-  // Valor inicial
   locationInput.value = `${DEFAULT_LAT}, ${DEFAULT_LNG}`;
 
-  // Forzar redimensionado después de un tiempo (por si el mapa está oculto)
   setTimeout(() => {
     if (map) map.invalidateSize();
   }, 500);
 }
 
-// ==================== GUARDAR EVENTO ====================
+// ==================== GUARDAR EVENTO (MEJORADO) ====================
 function saveEvent() {
+  console.log("🔍 Iniciando guardado de evento...");
+
+  // Obtener valores
   const titulo = document.getElementById('title').value.trim();
   const categoria = document.getElementById('category').value;
   const fechaInput = document.getElementById('date').value;
@@ -155,19 +151,47 @@ function saveEvent() {
   const descripcion = document.getElementById('description').value.trim();
   const ubicacionStr = document.getElementById('location').value.trim();
 
-  if (!titulo) { alert('Por favor, escribe un título para el evento.'); return; }
-  if (!fechaInput) { alert('Selecciona una fecha.'); return; }
-  if (!horaInput) { alert('Selecciona una hora.'); return; }
-  if (!ubicacionStr) { alert('Indica una ubicación (lat, lng) o selecciona en el mapa.'); return; }
+  console.log("📋 Datos del formulario:", { titulo, categoria, fechaInput, horaInput, descripcion, ubicacionStr });
 
-  const coords = ubicacionStr.split(',').map(s => parseFloat(s.trim()));
-  if (coords.length !== 2 || isNaN(coords[0]) || isNaN(coords[1])) {
-    alert('La ubicación debe tener el formato: latitud, longitud (ej: -33.749, -53.347)');
+  // Validaciones
+  if (!titulo) {
+    alert('Por favor, escribe un título para el evento.');
+    console.warn("⚠️ Falta título");
+    return;
+  }
+  if (!fechaInput) {
+    alert('Selecciona una fecha.');
+    console.warn("⚠️ Falta fecha");
+    return;
+  }
+  if (!horaInput) {
+    alert('Selecciona una hora.');
+    console.warn("⚠️ Falta hora");
+    return;
+  }
+  if (!ubicacionStr) {
+    alert('Indica una ubicación (lat, lng) o selecciona en el mapa.');
+    console.warn("⚠️ Falta ubicación");
     return;
   }
 
-  const fechaHora = new Date(`${fechaInput}T${horaInput}:00`);
+  // Parsear ubicación
+  const coords = ubicacionStr.split(',').map(s => parseFloat(s.trim()));
+  if (coords.length !== 2 || isNaN(coords[0]) || isNaN(coords[1])) {
+    alert('La ubicación debe tener el formato: latitud, longitud (ej: -33.749, -53.347)');
+    console.warn("⚠️ Ubicación inválida:", ubicacionStr);
+    return;
+  }
 
+  // Combinar fecha y hora
+  const fechaHora = new Date(`${fechaInput}T${horaInput}:00`);
+  if (isNaN(fechaHora.getTime())) {
+    alert('Fecha u hora inválida. Por favor revisa los valores.');
+    console.error("❌ Fecha/hora inválida:", fechaInput, horaInput);
+    return;
+  }
+
+  // Preparar datos
   const data = {
     titulo: titulo,
     categoria: categoria,
@@ -181,9 +205,13 @@ function saveEvent() {
     timestamp: firebase.firestore.FieldValue.serverTimestamp()
   };
 
+  console.log("📦 Datos a guardar en Firestore:", data);
+
+  // Guardar en Firestore
   db.collection('eventos')
     .add(data)
-    .then(() => {
+    .then((docRef) => {
+      console.log("✅ Evento guardado con ID:", docRef.id);
       alert('✅ Evento guardado con éxito.');
       // Limpiar formulario
       document.getElementById('title').value = '';
@@ -196,15 +224,13 @@ function saveEvent() {
       hideForm();
     })
     .catch((error) => {
-      console.error('Error al guardar:', error);
-      alert('❌ Error al guardar el evento. Revisa la consola.');
+      console.error("❌ Error al guardar en Firestore:", error);
+      alert('❌ Error al guardar el evento. Revisa la consola para más detalles.');
     });
 }
 
 // ==================== INICIO ====================
 document.addEventListener('DOMContentLoaded', function () {
-  // Inicializar el mapa (aunque esté oculto)
   initMap();
-  // Mostrar la lista de eventos
   showEvents();
 });
