@@ -11,50 +11,14 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
-const storage = firebase.storage();
 
 // ==================== VARIABLES GLOBALES ====================
 let map = null;
 let marker = null;
 let mapList = null;
 let markerGroup = null;
-let flyerFile = null; // archivo seleccionado para subir
 const DEFAULT_LAT = -33.749;
 const DEFAULT_LNG = -53.347;
-
-// ==================== PREVISUALIZACIÓN DEL FLYER ====================
-document.addEventListener('DOMContentLoaded', function() {
-  const fileInput = document.getElementById('flyerInput');
-  if (fileInput) {
-    fileInput.addEventListener('change', function(e) {
-      const file = e.target.files[0];
-      if (!file) {
-        flyerFile = null;
-        document.getElementById('flyerPreview').style.display = 'none';
-        return;
-      }
-      
-      // Validar tamaño (5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        alert('⚠️ El archivo es demasiado grande (máximo 5MB)');
-        this.value = '';
-        flyerFile = null;
-        document.getElementById('flyerPreview').style.display = 'none';
-        return;
-      }
-      
-      flyerFile = file;
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const previewDiv = document.getElementById('flyerPreview');
-        const img = document.getElementById('previewImg');
-        img.src = e.target.result;
-        previewDiv.style.display = 'block';
-      };
-      reader.readAsDataURL(file);
-    });
-  }
-});
 
 // ==================== FUNCIONES DE INTERFAZ ====================
 
@@ -64,11 +28,11 @@ function showEvents() {
   listDiv.style.display = 'block';
   formDiv.style.display = 'none';
 
-  document.getElementById('event-items').innerHTML = '<p>Cargando eventos...</p>';
+  document.getElementById('event-items').innerHTML = '<p>🔄 Cargando eventos...</p>';
   const mapListContainer = document.getElementById('map-list');
   mapListContainer.style.display = 'none';
 
-  console.log('📡 Leyendo eventos...');
+  console.log('📡 Leyendo eventos de Firestore...');
 
   db.collection('eventos')
     .orderBy('fecha', 'desc')
@@ -78,7 +42,7 @@ function showEvents() {
       const itemsContainer = document.getElementById('event-items');
 
       if (querySnapshot.empty) {
-        itemsContainer.innerHTML = '<p>No hay eventos aún. ¡Sé el primero en agregar uno!</p>';
+        itemsContainer.innerHTML = '<p>📭 No hay eventos aún. ¡Sé el primero en agregar uno!</p>';
         mapListContainer.style.display = 'none';
         return;
       }
@@ -92,7 +56,6 @@ function showEvents() {
         const categoria = data.categoria || 'General';
         const desc = data.descripcion || '';
         const ubicacion = data.ubicacion || 'No especificada';
-        const flyerUrl = data.flyerUrl || '';
         
         html += `
           <div class="event-item">
@@ -103,7 +66,6 @@ function showEvents() {
               <span>📍 ${ubicacion}</span>
             </div>
             ${desc ? `<div class="event-desc">${desc}</div>` : ''}
-            ${flyerUrl ? `<div class="event-flyer"><img src="${flyerUrl}" alt="Flyer del evento"></div>` : ''}
           </div>
         `;
         
@@ -127,7 +89,13 @@ function showEvents() {
     })
     .catch((error) => {
       console.error('❌ Error al obtener eventos:', error);
-      document.getElementById('event-items').innerHTML = `<p>❌ Error: ${error.message}</p>`;
+      let mensajeError = '❌ Error al cargar eventos: ';
+      if (error.code === 'permission-denied') {
+        mensajeError += 'No tienes permisos para leer los eventos. Verifica las reglas de Firestore en la consola de Firebase.';
+      } else {
+        mensajeError += error.message;
+      }
+      document.getElementById('event-items').innerHTML = `<p>${mensajeError}</p>`;
       document.getElementById('map-list').style.display = 'none';
     });
 }
@@ -186,11 +154,6 @@ function showForm() {
 function hideForm() {
   document.getElementById('event-form').style.display = 'none';
   document.getElementById('event-list').style.display = 'block';
-  // Limpiar el campo de archivo
-  document.getElementById('flyerInput').value = '';
-  document.getElementById('flyerPreview').style.display = 'none';
-  document.getElementById('uploadProgress').style.display = 'none';
-  flyerFile = null;
   showEvents();
 }
 
@@ -249,80 +212,28 @@ function saveEvent() {
   const fechaHora = new Date(`${fechaInput}T${horaInput}:00`);
   if (isNaN(fechaHora.getTime())) { alert('⚠️ Fecha u hora inválida.'); return; }
 
-  // Si hay flyer, subirlo primero
-  if (flyerFile) {
-    uploadFlyerAndSave(titulo, categoria, fechaHora, fechaInput, horaInput, descripcion, coords);
-  } else {
-    saveEventData(titulo, categoria, fechaHora, fechaInput, horaInput, descripcion, coords, null);
-  }
-}
-
-function uploadFlyerAndSave(titulo, categoria, fechaHora, fechaInput, horaInput, descripcion, coords) {
-  const progressDiv = document.getElementById('uploadProgress');
-  const progressBar = document.getElementById('progressBar');
-  const progressText = document.getElementById('progressText');
-  
-  progressDiv.style.display = 'block';
-  progressBar.value = 0;
-  progressText.textContent = '0%';
-
-  // Crear nombre único para el archivo
-  const fileName = `${Date.now()}_${flyerFile.name}`;
-  const storageRef = storage.ref('flyers/' + fileName);
-  const uploadTask = storageRef.put(flyerFile);
-
-  uploadTask.on('state_changed',
-    (snapshot) => {
-      const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-      progressBar.value = progress;
-      progressText.textContent = Math.round(progress) + '%';
-    },
-    (error) => {
-      console.error('❌ Error al subir flyer:', error);
-      alert('❌ Error al subir la imagen: ' + error.message);
-      progressDiv.style.display = 'none';
-    },
-    () => {
-      // Subida completada, obtener URL
-      uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
-        progressDiv.style.display = 'none';
-        saveEventData(titulo, categoria, fechaHora, fechaInput, horaInput, descripion, coords, downloadURL);
-      }).catch((error) => {
-        console.error('❌ Error al obtener URL:', error);
-        alert('❌ Error al obtener la URL de la imagen: ' + error.message);
-        progressDiv.style.display = 'none';
-      });
-    }
-  );
-}
-
-function saveEventData(titulo, categoria, fechaHora, fechaInput, horaInput, descripcion, coords, flyerUrl) {
   const data = {
-    titulo, categoria,
+    titulo: titulo,
+    categoria: categoria,
     fecha: fechaHora,
     fechaStr: fechaInput,
     hora: horaInput,
-    descripcion,
+    descripcion: descripcion,
     ubicacion: `${coords[0]}, ${coords[1]}`,
     lat: coords[0],
     lng: coords[1],
     timestamp: firebase.firestore.FieldValue.serverTimestamp()
   };
 
-  if (flyerUrl) {
-    data.flyerUrl = flyerUrl;
-  }
-
   console.log('📤 Guardando evento:', data);
+  
   db.collection('eventos').add(data)
-    .then(() => {
-      alert('✅ Evento guardado.');
+    .then((docRef) => {
+      console.log('✅ Evento guardado con ID:', docRef.id);
+      alert('✅ Evento guardado con éxito.');
       document.getElementById('title').value = '';
       document.getElementById('description').value = '';
       document.getElementById('location').value = `${DEFAULT_LAT}, ${DEFAULT_LNG}`;
-      document.getElementById('flyerInput').value = '';
-      document.getElementById('flyerPreview').style.display = 'none';
-      flyerFile = null;
       if (marker) {
         marker.setLatLng([DEFAULT_LAT, DEFAULT_LNG]);
         map.setView([DEFAULT_LAT, DEFAULT_LNG], 13);
@@ -330,8 +241,8 @@ function saveEventData(titulo, categoria, fechaHora, fechaInput, horaInput, desc
       hideForm();
     })
     .catch((error) => {
-      console.error('❌ Error:', error);
-      alert(`❌ Error: ${error.message}`);
+      console.error('❌ Error al guardar:', error);
+      alert(`❌ Error al guardar: ${error.message}`);
     });
 }
 
