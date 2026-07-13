@@ -11,17 +11,52 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+const storage = firebase.storage();
 
 // ==================== VARIABLES GLOBALES ====================
 let map = null;
 let marker = null;
 let mapList = null;
 let markerGroup = null;
+let flyerFile = null; // archivo seleccionado para subir
 const DEFAULT_LAT = -33.749;
 const DEFAULT_LNG = -53.347;
-const DEFAULT_ZOOM = 13;
 
-// ==================== FUNCIONES ====================
+// ==================== PREVISUALIZACIÓN DEL FLYER ====================
+document.addEventListener('DOMContentLoaded', function() {
+  const fileInput = document.getElementById('flyerInput');
+  if (fileInput) {
+    fileInput.addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) {
+        flyerFile = null;
+        document.getElementById('flyerPreview').style.display = 'none';
+        return;
+      }
+      
+      // Validar tamaño (5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('⚠️ El archivo es demasiado grande (máximo 5MB)');
+        this.value = '';
+        flyerFile = null;
+        document.getElementById('flyerPreview').style.display = 'none';
+        return;
+      }
+      
+      flyerFile = file;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const previewDiv = document.getElementById('flyerPreview');
+        const img = document.getElementById('previewImg');
+        img.src = e.target.result;
+        previewDiv.style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+});
+
+// ==================== FUNCIONES DE INTERFAZ ====================
 
 function showEvents() {
   const listDiv = document.getElementById('event-list');
@@ -57,6 +92,8 @@ function showEvents() {
         const categoria = data.categoria || 'General';
         const desc = data.descripcion || '';
         const ubicacion = data.ubicacion || 'No especificada';
+        const flyerUrl = data.flyerUrl || '';
+        
         html += `
           <div class="event-item">
             <div class="event-title">${titulo}</div>
@@ -66,8 +103,10 @@ function showEvents() {
               <span>📍 ${ubicacion}</span>
             </div>
             ${desc ? `<div class="event-desc">${desc}</div>` : ''}
+            ${flyerUrl ? `<div class="event-flyer"><img src="${flyerUrl}" alt="Flyer del evento"></div>` : ''}
           </div>
         `;
+        
         if (data.lat && data.lng) {
           eventosConCoords.push({
             lat: data.lat,
@@ -97,15 +136,12 @@ function initMapList(eventos) {
   const container = document.getElementById('map-list');
   if (!container) return;
 
-  // Si el mapa ya existe, limpiar marcadores anteriores
   if (mapList) {
     if (markerGroup) mapList.removeLayer(markerGroup);
   } else {
-    // Crear mapa nuevo con zoom inicial más amplio
     mapList = L.map('map-list', {
-      zoomControl: true,
-      fadeAnimation: true
-    }).setView([DEFAULT_LAT, DEFAULT_LNG], DEFAULT_ZOOM - 1); // zoom un nivel más alejado
+      maxZoom: 15
+    }).setView([DEFAULT_LAT, DEFAULT_LNG], 12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
     }).addTo(mapList);
@@ -120,27 +156,13 @@ function initMapList(eventos) {
     L.marker(latlng).bindPopup(popupText).addTo(markerGroup);
   });
 
-  // Ajustar vista para mostrar todos los marcadores, con más padding y un zoom máximo para que no se acerque demasiado
   if (bounds.length > 0) {
-    // Si hay varios puntos, ajustar a ellos; si solo uno, alejar un poco más
-    if (bounds.length === 1) {
-      // Para un solo marcador, centrar y usar un zoom más alejado
-      const center = bounds[0];
-      mapList.setView(center, DEFAULT_ZOOM - 2); // más alejado aún
-    } else {
-      // Múltiples marcadores: usar fitBounds con padding generoso y maxZoom para evitar demasiado acercamiento
-      mapList.fitBounds(bounds, {
-        padding: [50, 50], // más padding para que los marcadores queden más centrados y se vea más área
-        maxZoom: DEFAULT_ZOOM // no superar este zoom para mantener visión amplia
-      });
-    }
+    mapList.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
   } else {
-    // Si no hay bounds (por seguridad), ir a la vista por defecto
-    mapList.setView([DEFAULT_LAT, DEFAULT_LNG], DEFAULT_ZOOM - 1);
+    mapList.setView([DEFAULT_LAT, DEFAULT_LNG], 12);
   }
 
-  // Forzar redimensionado
-  setTimeout(() => { if (mapList) mapList.invalidateSize(); }, 400);
+  setTimeout(() => { if (mapList) mapList.invalidateSize(); }, 300);
 }
 
 function showForm() {
@@ -164,6 +186,11 @@ function showForm() {
 function hideForm() {
   document.getElementById('event-form').style.display = 'none';
   document.getElementById('event-list').style.display = 'block';
+  // Limpiar el campo de archivo
+  document.getElementById('flyerInput').value = '';
+  document.getElementById('flyerPreview').style.display = 'none';
+  document.getElementById('uploadProgress').style.display = 'none';
+  flyerFile = null;
   showEvents();
 }
 
@@ -172,7 +199,7 @@ function initMapForm() {
   if (!mapContainer) return;
   if (map) { map.invalidateSize(); return; }
 
-  map = L.map('map').setView([DEFAULT_LAT, DEFAULT_LNG], DEFAULT_ZOOM);
+  map = L.map('map').setView([DEFAULT_LAT, DEFAULT_LNG], 13);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap'
   }).addTo(map);
@@ -193,7 +220,7 @@ function initMapForm() {
     const coords = this.value.trim().split(',').map(Number);
     if (coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1])) {
       marker.setLatLng([coords[0], coords[1]]);
-      map.setView([coords[0], coords[1]], DEFAULT_ZOOM);
+      map.setView([coords[0], coords[1]], 13);
     }
   });
   locInput.value = `${DEFAULT_LAT}, ${DEFAULT_LNG}`;
@@ -222,6 +249,54 @@ function saveEvent() {
   const fechaHora = new Date(`${fechaInput}T${horaInput}:00`);
   if (isNaN(fechaHora.getTime())) { alert('⚠️ Fecha u hora inválida.'); return; }
 
+  // Si hay flyer, subirlo primero
+  if (flyerFile) {
+    uploadFlyerAndSave(titulo, categoria, fechaHora, fechaInput, horaInput, descripcion, coords);
+  } else {
+    saveEventData(titulo, categoria, fechaHora, fechaInput, horaInput, descripcion, coords, null);
+  }
+}
+
+function uploadFlyerAndSave(titulo, categoria, fechaHora, fechaInput, horaInput, descripcion, coords) {
+  const progressDiv = document.getElementById('uploadProgress');
+  const progressBar = document.getElementById('progressBar');
+  const progressText = document.getElementById('progressText');
+  
+  progressDiv.style.display = 'block';
+  progressBar.value = 0;
+  progressText.textContent = '0%';
+
+  // Crear nombre único para el archivo
+  const fileName = `${Date.now()}_${flyerFile.name}`;
+  const storageRef = storage.ref('flyers/' + fileName);
+  const uploadTask = storageRef.put(flyerFile);
+
+  uploadTask.on('state_changed',
+    (snapshot) => {
+      const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+      progressBar.value = progress;
+      progressText.textContent = Math.round(progress) + '%';
+    },
+    (error) => {
+      console.error('❌ Error al subir flyer:', error);
+      alert('❌ Error al subir la imagen: ' + error.message);
+      progressDiv.style.display = 'none';
+    },
+    () => {
+      // Subida completada, obtener URL
+      uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
+        progressDiv.style.display = 'none';
+        saveEventData(titulo, categoria, fechaHora, fechaInput, horaInput, descripion, coords, downloadURL);
+      }).catch((error) => {
+        console.error('❌ Error al obtener URL:', error);
+        alert('❌ Error al obtener la URL de la imagen: ' + error.message);
+        progressDiv.style.display = 'none';
+      });
+    }
+  );
+}
+
+function saveEventData(titulo, categoria, fechaHora, fechaInput, horaInput, descripcion, coords, flyerUrl) {
   const data = {
     titulo, categoria,
     fecha: fechaHora,
@@ -234,6 +309,10 @@ function saveEvent() {
     timestamp: firebase.firestore.FieldValue.serverTimestamp()
   };
 
+  if (flyerUrl) {
+    data.flyerUrl = flyerUrl;
+  }
+
   console.log('📤 Guardando evento:', data);
   db.collection('eventos').add(data)
     .then(() => {
@@ -241,9 +320,12 @@ function saveEvent() {
       document.getElementById('title').value = '';
       document.getElementById('description').value = '';
       document.getElementById('location').value = `${DEFAULT_LAT}, ${DEFAULT_LNG}`;
+      document.getElementById('flyerInput').value = '';
+      document.getElementById('flyerPreview').style.display = 'none';
+      flyerFile = null;
       if (marker) {
         marker.setLatLng([DEFAULT_LAT, DEFAULT_LNG]);
-        map.setView([DEFAULT_LAT, DEFAULT_LNG], DEFAULT_ZOOM);
+        map.setView([DEFAULT_LAT, DEFAULT_LNG], 13);
       }
       hideForm();
     })
